@@ -68,12 +68,13 @@ export function bindTouch(target, { move, end }) {
     const spanx = pageX - startx;
     const spany = pageY - starty;
     if (Math.abs(spanx) > 10 || Math.abs(spany) > 10) {
-      // console.log('spanx:', spanx, ', spany:', spany);
+      // consolegit.log('spanx:', spanx, ', spany:', spany);
       calTouchDirection(spanx, spany, evt, move);
       startx = pageX;
       starty = pageY;
     }
     evt.preventDefault();
+    evt.stopPropagation();
   });
   bind(target, 'touchend', (evt) => {
     if (!end) return;

@@ -1,21 +1,10 @@
 declare module 'x-data-spreadsheet' {
-  export interface ExtendToolbarOption {
-    tip?: string;
-    el?: HTMLElement;
-    icon?: string;
-    onClick?: (data: object, sheet: object) => void
-  }
   export interface Options {
     mode?: 'edit' | 'read';
     showToolbar?: boolean;
     showGrid?: boolean;
     showContextmenu?: boolean;
     showBottomBar?: boolean;
-    extendToolbar?: {
-      left?: ExtendToolbarOption[],
-      right?: ExtendToolbarOption[],
-    };
-    autoFocus?: boolean;
     view?: {
       height: () => number;
       width: () => number;
@@ -45,6 +34,7 @@ declare module 'x-data-spreadsheet' {
         italic: false;
       };
     };
+    isDark: boolean;
   }
 
   export type CELL_SELECTED = 'cell-selected';
@@ -56,18 +46,18 @@ declare module 'x-data-spreadsheet' {
   export interface SpreadsheetEventHandler {
     (
       envt: CELL_SELECTED,
-      callback: (cell: Cell, rowIndex: number, colIndex: number) => void
+      callback: (sheetData: Record<string, any>, rowIndex: number, colIndex: number) => void
     ): void;
     (
       envt: CELLS_SELECTED,
       callback: (
-        cell: Cell,
+        sheetData: Record<string, any>,
         parameters: { sri: number; sci: number; eri: number; eci: number }
       ) => void
     ): void;
     (
       evnt: CELL_EDITED,
-      callback: (text: string, rowIndex: number, colIndex: number) => void
+      callback: (sheetData: Record<string, any>, rowIndex: number, colIndex: number) => void
     ): void;
   }
 
@@ -193,6 +183,25 @@ declare module 'x-data-spreadsheet' {
      * @param callback
      */
     change(callback: (json: Record<string, any>) => void): this;
+
+    /**
+     * 添加sheet监听回调
+     * @param callback
+     */
+    onAddSheet(callback: () => void): this;
+
+     /**
+     * 重命名Sheet
+     * @param callback
+     */
+     onRenameSheet(callback: () => void): this;
+
+     /**
+     * 删除Sheet
+     * @param callback
+     */
+     onDeleteSheet(callback: () => void): this;
+
     /**
      * set locale
      * @param lang

@@ -30,10 +30,14 @@ export function stringAt(index) {
  */
 export function indexAt(str) {
   let ret = 0;
-  for(let i = 0; i !== str.length; ++i) ret = 26 * ret + str.charCodeAt(i) - 64;
-  return ret - 1;
+  for (let i = 0; i < str.length - 1; i += 1) {
+    const cindex = str.charCodeAt(i) - 65;
+    const exponet = str.length - 1 - i;
+    ret += (alphabets.length ** exponet) + (alphabets.length * cindex);
+  }
+  ret += str.charCodeAt(str.length - 1) - 65;
+  return ret;
 }
-
 
 // B10 => x,y
 /** translate A1-tag to XY-tag

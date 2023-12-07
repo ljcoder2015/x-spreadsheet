@@ -7,22 +7,23 @@ import { formatm } from '../core/format';
 import {
   Draw, DrawBox, thinLineWidth, npx,
 } from '../canvas/draw';
+import { idText } from 'typescript';
 // gobal var
 const cellPaddingWidth = 5;
 const tableFixedHeaderCleanStyle = { fillStyle: '#f4f5f8' };
-const tableGridStyle = {
+var tableGridStyle = {
   fillStyle: '#fff',
   lineWidth: thinLineWidth,
   strokeStyle: '#e6e6e6',
 };
-function tableFixedHeaderStyle() {
+function tableFixedHeaderStyle(isDark) {
   return {
     textAlign: 'center',
     textBaseline: 'middle',
     font: `500 ${npx(12)}px Source Sans Pro`,
-    fillStyle: '#585757',
+    fillStyle: isDark ? '#dcdcdc' : '#585757',
     lineWidth: thinLineWidth(),
-    strokeStyle: '#e6e6e6',
+    strokeStyle: isDark ? '#c0c0c0': '#e6e6e6',
   };
 }
 
@@ -184,12 +185,17 @@ function renderSelectedHeaderCell(x, y, w, h) {
 // h: the fixed height of header
 // tx: moving distance on x-axis
 // ty: moving distance on y-axis
-function renderFixedHeaders(type, viewRange, w, h, tx, ty) {
+function renderFixedHeaders(type, viewRange, w, h, tx, ty, isDark) {
   const { draw, data } = this;
   const sumHeight = viewRange.h; // rows.sumHeight(viewRange.sri, viewRange.eri + 1);
   const sumWidth = viewRange.w; // cols.sumWidth(viewRange.sci, viewRange.eci + 1);
   const nty = ty + h;
   const ntx = tx + w;
+
+  if (isDark) {
+    tableFixedHeaderCleanStyle.fillStyle = '#595d88'
+    tableFixedHeaderCleanStyle.strokeStyle = '#5d5d5d'
+  }
 
   draw.save();
   // draw rect background
@@ -203,7 +209,7 @@ function renderFixedHeaders(type, viewRange, w, h, tx, ty) {
   // console.log(data.selectIndexes);
   // draw text
   // text font, align...
-  draw.attr(tableFixedHeaderStyle());
+  draw.attr(tableFixedHeaderStyle(isDark));
   // y-header-text
   if (type === 'all' || type === 'left') {
     data.rowEach(viewRange.sri, viewRange.eri, (i, y1, rowHeight) => {
@@ -247,20 +253,24 @@ function renderFixedHeaders(type, viewRange, w, h, tx, ty) {
   draw.restore();
 }
 
-function renderFixedLeftTopCell(fw, fh) {
+function renderFixedLeftTopCell(fw, fh, isDark) {
   const { draw } = this;
   draw.save();
   // left-top-cell
-  draw.attr({ fillStyle: '#f4f5f8' })
+  draw.attr({ fillStyle: isDark ? '#595d88' : '#f4f5f8', strokeStyle: isDark ? '#5d5d5d' : '#e6e6e6' })
     .fillRect(0, 0, fw, fh);
   draw.restore();
 }
 
 function renderContentGrid({
   sri, sci, eri, eci, w, h,
-}, fw, fh, tx, ty) {
+}, fw, fh, tx, ty, isDark) {
   const { draw, data } = this;
   const { settings } = data;
+
+  if (isDark) {
+    tableGridStyle.strokeStyle = '#5d5d5d'
+  }
 
   draw.save();
   draw.attr(tableGridStyle)
@@ -300,10 +310,11 @@ function renderFreezeHighlightLine(fw, fh, ftw, fth) {
 
 /** end */
 class Table {
-  constructor(el, data) {
+  constructor(el, data, isDark) {
     this.el = el;
     this.draw = new Draw(el, data.viewWidth(), data.viewHeight());
     this.data = data;
+    this.isDark = isDark
   }
 
   resetData(data) {
@@ -329,10 +340,10 @@ class Table {
     const ty = data.freezeTotalHeight();
     const { x, y } = data.scroll;
     // 1
-    renderContentGrid.call(this, viewRange, fw, fh, tx, ty);
+    renderContentGrid.call(this, viewRange, fw, fh, tx, ty, this.isDark);
     renderContent.call(this, viewRange, fw, fh, -x, -y);
-    renderFixedHeaders.call(this, 'all', viewRange, fw, fh, tx, ty);
-    renderFixedLeftTopCell.call(this, fw, fh);
+    renderFixedHeaders.call(this, 'all', viewRange, fw, fh, tx, ty, this.isDark);
+    renderFixedLeftTopCell.call(this, fw, fh, this.isDark);
     const [fri, fci] = data.freeze;
     if (fri > 0 || fci > 0) {
       // 2
@@ -343,7 +354,7 @@ class Table {
         vr.h = ty;
         renderContentGrid.call(this, vr, fw, fh, tx, 0);
         renderContent.call(this, vr, fw, fh, -x, 0);
-        renderFixedHeaders.call(this, 'top', vr, fw, fh, tx, 0);
+        renderFixedHeaders.call(this, 'top', vr, fw, fh, tx, 0, this.isDark);
       }
       // 3
       if (fci > 0) {
@@ -352,13 +363,13 @@ class Table {
         vr.eci = fci - 1;
         vr.w = tx;
         renderContentGrid.call(this, vr, fw, fh, 0, ty);
-        renderFixedHeaders.call(this, 'left', vr, fw, fh, 0, ty);
+        renderFixedHeaders.call(this, 'left', vr, fw, fh, 0, ty, this.isDark);
         renderContent.call(this, vr, fw, fh, 0, -y);
       }
       // 4
       const freezeViewRange = data.freezeViewRange();
       renderContentGrid.call(this, freezeViewRange, fw, fh, 0, 0);
-      renderFixedHeaders.call(this, 'all', freezeViewRange, fw, fh, 0, 0);
+      renderFixedHeaders.call(this, 'all', freezeViewRange, fw, fh, 0, 0, this.isDark);
       renderContent.call(this, freezeViewRange, fw, fh, 0, 0);
       // 5
       renderFreezeHighlightLine.call(this, fw, fh, tx, ty);

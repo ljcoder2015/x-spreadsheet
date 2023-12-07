@@ -11,16 +11,16 @@ import './index.less';
 class Spreadsheet {
   constructor(selectors, options = {}) {
     let targetEl = selectors;
-    this.options = { showBottomBar: true, ...options };
-    this.sheetIndex = 1;
+    this.options = { isDark: false, showBottomBar: true, ...options };
+    this.sheetIndex = 0;
     this.datas = [];
     if (typeof selectors === 'string') {
       targetEl = document.querySelector(selectors);
     }
     this.bottombar = this.options.showBottomBar ? new Bottombar(() => {
-      if (this.options.mode === 'read') return;
       const d = this.addSheet();
       this.sheet.resetData(d);
+      this.sheet.trigger('add-sheet', "")
     }, (index) => {
       const d = this.datas[index];
       this.sheet.resetData(d);
@@ -28,14 +28,14 @@ class Spreadsheet {
       this.deleteSheet();
     }, (index, value) => {
       this.datas[index].name = value;
-      this.sheet.trigger('change');
+      this.sheet.trigger('rename-sheet', value)
     }) : null;
     this.data = this.addSheet();
     const rootEl = h('div', `${cssPrefix}`)
       .on('contextmenu', evt => evt.preventDefault());
     // create canvas element
     targetEl.appendChild(rootEl.el);
-    this.sheet = new Sheet(rootEl, this.data);
+    this.sheet = new Sheet(rootEl, this.data, options.isDark);
     if (this.bottombar !== null) {
       rootEl.child(this.bottombar.el);
     }
@@ -50,7 +50,7 @@ class Spreadsheet {
     this.datas.push(d);
     // console.log('d:', n, d, this.datas);
     if (this.bottombar !== null) {
-      this.bottombar.addItem(n, active, this.options);
+      this.bottombar.addItem(n, active);
     }
     this.sheetIndex += 1;
     return d;
@@ -62,8 +62,8 @@ class Spreadsheet {
     const [oldIndex, nindex] = this.bottombar.deleteItem();
     if (oldIndex >= 0) {
       this.datas.splice(oldIndex, 1);
+      this.sheet.trigger('delete-sheet', "")
       if (nindex >= 0) this.sheet.resetData(this.datas[nindex]);
-      this.sheet.trigger('change');
     }
   }
 
@@ -121,6 +121,21 @@ class Spreadsheet {
   change(cb) {
     this.sheet.on('change', cb);
     return this;
+  }
+
+  onAddSheet(cb) {
+    this.sheet.on('add-sheet', cb);
+    return this;
+  }
+
+  onRenameSheet(cb) {
+    this.sheet.on('rename-sheet', cb);
+    return this;
+  }
+
+  onDeleteSheet(cb) {
+    this.sheet.on('delete-sheet', cb)
+    return this
   }
 
   static locale(lang, message) {

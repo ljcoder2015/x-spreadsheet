@@ -8,8 +8,7 @@ export default class Item {
   // tag: the subclass type
   // shortcut: shortcut key
   constructor(tag, shortcut, value) {
-    this.tip = '';
-    if (tag) this.tip = t(`toolbar.${tag.replace(/-[a-z]/g, c => c[1].toUpperCase())}`);
+    this.tip = t(`toolbar.${tag.replace(/-[a-z]/g, c => c[1].toUpperCase())}`);
     if (shortcut) this.tip += ` (${shortcut})`;
     this.tag = tag;
     this.shortcut = shortcut;
@@ -22,7 +21,7 @@ export default class Item {
     const { tip } = this;
     return h('div', `${cssPrefix}-toolbar-btn`)
       .on('mouseenter', (evt) => {
-        if (this.tip) tooltip(this.tip, evt.target);
+        tooltip(tip, evt.target);
       })
       .attr('data-tooltip', tip);
   }

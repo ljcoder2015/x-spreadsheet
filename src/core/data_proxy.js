@@ -109,6 +109,11 @@ const defaultSettings = {
 const toolbarHeight = 41;
 const bottombarHeight = 41;
 
+
+// Utility functions
+const hasOwnProperty = (obj, name) => Object.prototype.hasOwnProperty.call(obj, name);
+
+
 // src: cellRange
 // dst: cellRange
 function canPaste(src, dst, error = () => {}) {
@@ -171,7 +176,7 @@ function setStyleBorders({ mode, style, color }) {
   const {
     sri, sci, eri, eci,
   } = selector.range;
-  const multiple = !this.isSingleSelected();
+  const multiple = !this.isSignleSelected();
   if (!multiple) {
     if (mode === 'inside' || mode === 'horizontal' || mode === 'vertical') {
       return;
@@ -404,39 +409,38 @@ export default class DataProxy {
     this.clipboard.copy(this.selector.range);
   }
 
-  copyToSystemClipboard(evt) {
-    let copyText = [];
-    const {
-      sri, eri, sci, eci,
-    } = this.selector.range;
-
-    for (let ri = sri; ri <= eri; ri += 1) {
-      const row = [];
-      for (let ci = sci; ci <= eci; ci += 1) {
-        const cell = this.getCell(ri, ci);
-        row.push((cell && cell.text) || '');
-      }
-      copyText.push(row);
-    }
-
-    // Adding \n and why not adding \r\n is to support online office and client MS office and WPS
-    copyText = copyText.map(row => row.join('\t')).join('\n');
-
-    // why used this
-    // cuz http protocol will be blocked request clipboard by browser
-    if (evt) {
-      evt.clipboardData.clearData();
-      evt.clipboardData.setData('text/plain', copyText);
-      evt.preventDefault();
-    }
-
-    // this need https protocol
+  copyToSystemClipboard() {
     /* global navigator */
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(copyText).then(() => {}, (err) => {
-        console.log('text copy to the system clipboard error  ', copyText, err);
-      });
+    if (navigator.clipboard === undefined) {
+      return;
     }
+    let copyText = '';
+    const rowData = this.rows.getData();
+    for (let ri = this.selector.range.sri; ri <= this.selector.range.eri; ri += 1) {
+      if (hasOwnProperty(rowData, ri)) {
+        for (let ci = this.selector.range.sci; ci <= this.selector.range.eci; ci += 1) {
+          if (ci > this.selector.range.sci) {
+            copyText += '\t';
+          }
+          if (hasOwnProperty(rowData[ri].cells, ci)) {
+            const cellText = String(rowData[ri].cells[ci].text);
+            if ((cellText.indexOf(`\n`) === -1) && (cellText.indexOf(`\t`) === -1) && (cellText.indexOf(`"`) === -1)) {
+              copyText += cellText;
+            } else {
+              copyText += `"${cellText}"`;
+            }
+          }
+        }
+      } else {
+        for (let ci = this.selector.range.sci; ci <= this.selector.range.eci; ci += 1) {
+          copyText += '\t';
+        }
+      }
+      copyText += '\n';
+    }
+    navigator.clipboard.writeText(copyText).then(() => {}, (err) => {
+      console.log('text copy to the system clipboard error  ', copyText, err);
+    });
   }
 
   cut() {
@@ -460,52 +464,13 @@ export default class DataProxy {
     return true;
   }
 
-  pasteFromSystemClipboard(resetSheet, eventTrigger) {
-    const { selector } = this;
-    navigator.clipboard.readText().then((content) => {
-      const contentToPaste = this.parseClipboardContent(content);
-      let startRow = selector.ri;
-      contentToPaste.forEach((row) => {
-        let startColumn = selector.ci;
-        row.forEach((cellContent) => {
-          this.setCellText(startRow, startColumn, cellContent, 'input');
-          startColumn += 1;
-        });
-        startRow += 1;
-      });
-      resetSheet();
-      eventTrigger(this.rows.getData());
-    });
-  }
-
-  parseClipboardContent(clipboardContent) {
-    const parsedData = [];
-
-    // first we need to figure out how many rows we need to paste
-    const rows = clipboardContent.split('\n');
-
-    // for each row parse cell data
-    let i = 0;
-    rows.forEach((row) => {
-      parsedData[i] = row.split('\t');
-      i += 1;
-    });
-    return parsedData;
-  }
-
   pasteFromText(txt) {
-    let lines = [];
-
-    if (/\r\n/.test(txt)) lines = txt.split('\r\n').map(it => it.replace(/"/g, '').split('\t'));
-    else lines = txt.split('\n').map(it => it.replace(/"/g, '').split('\t'));
-
-    if (lines.length) {
-      const { rows, selector } = this;
-
-      this.changeData(() => {
-        rows.paste(lines, selector.range);
-      });
-    }
+    const lines = txt.split('\r\n').map(it => it.replace(/"/g, '').split('\t'));
+    if (lines.length > 0) lines.length -= 1;
+    const { rows, selector } = this;
+    this.changeData(() => {
+      rows.paste(lines, selector.range);
+    });
   }
 
   autofill(cellRange, what, error = () => {}) {
@@ -749,7 +714,7 @@ export default class DataProxy {
     };
   }
 
-  isSingleSelected() {
+  isSignleSelected() {
     const {
       sri, sci, eri, eci,
     } = this.selector.range;
@@ -775,7 +740,7 @@ export default class DataProxy {
 
   merge() {
     const { selector, rows } = this;
-    if (this.isSingleSelected()) return;
+    if (this.isSignleSelected()) return;
     const [rn, cn] = selector.size();
     // console.log('merge:', rn, cn);
     if (rn > 1 || cn > 1) {
@@ -794,7 +759,7 @@ export default class DataProxy {
 
   unmerge() {
     const { selector } = this;
-    if (!this.isSingleSelected()) return;
+    if (!this.isSignleSelected()) return;
     const { sri, sci } = selector.range;
     this.changeData(() => {
       this.rows.deleteCell(sri, sci, 'merge');
@@ -871,14 +836,7 @@ export default class DataProxy {
       } else if (type === 'column') {
         rows.insertColumn(sci, n);
         si = sci;
-        cols.len += n;
-        Object.keys(cols._).reverse().forEach((colIndex) => {
-          const col = parseInt(colIndex, 10);
-          if (col >= sci) {
-            cols._[col + n] = cols._[col];
-            delete cols._[col];
-          }
-        });
+        cols.len += 1;
       }
       merges.shift(type, si, n, (ri, ci, rn, cn) => {
         const cell = rows.getCell(ri, ci);
@@ -907,14 +865,7 @@ export default class DataProxy {
         rows.deleteColumn(sci, eci);
         si = range.sci;
         size = csize;
-        cols.len -= (eci - sci + 1);
-        Object.keys(cols._).forEach((colIndex) => {
-          const col = parseInt(colIndex, 10);
-          if (col >= sci) {
-            if (col > eci) cols._[col - (eci - sci + 1)] = cols._[col];
-            delete cols._[col];
-          }
-        });
+        cols.len -= 1;
       }
       // console.log('type:', type, ', si:', si, ', size:', size);
       merges.shift(type, si, -size, (ri, ci, rn, cn) => {

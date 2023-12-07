@@ -73,16 +73,16 @@ function selectorSet(multiple, ri, ci, indexesUpdated = true, moving = false) {
     table, selector, toolbar, data,
     contextMenu,
   } = this;
+  contextMenu.setMode((ri === -1 || ci === -1) ? 'row-col' : 'range');
   const cell = data.getCell(ri, ci);
   if (multiple) {
     selector.setEnd(ri, ci, moving);
-    this.trigger('cells-selected', cell, selector.range);
+    this.trigger('cells-selected', this.data, selector.range);
   } else {
     // trigger click event
     selector.set(ri, ci, indexesUpdated);
-    this.trigger('cell-selected', cell, ri, ci);
+    this.trigger('cell-selected', this.data, ri, ci);
   }
-  contextMenu.setMode((ri === -1 || ci === -1) ? 'row-col' : 'range');
   toolbar.reset();
   table.render();
 }
@@ -314,17 +314,15 @@ function clearClipboard() {
   selector.hideClipboard();
 }
 
-function copy(evt) {
+function copy() {
   const { data, selector } = this;
-  if (data.settings.mode === 'read') return;
   data.copy();
-  data.copyToSystemClipboard(evt);
+  data.copyToSystemClipboard();
   selector.showClipboard();
 }
 
 function cut() {
   const { data, selector } = this;
-  if (data.settings.mode === 'read') return;
   data.cut();
   selector.showClipboard();
 }
@@ -332,15 +330,7 @@ function cut() {
 function paste(what, evt) {
   const { data } = this;
   if (data.settings.mode === 'read') return;
-  if (data.clipboard.isClear()) {
-    const resetSheet = () => sheetReset.call(this);
-    const eventTrigger = (rows) => {
-      this.trigger('pasted-clipboard', rows);
-    };
-    // pastFromSystemClipboard is async operation, need to tell it how to reset sheet and trigger event after it finishes
-    // pasting content from system clipboard
-    data.pasteFromSystemClipboard(resetSheet, eventTrigger);
-  } else if (data.paste(what, msg => xtoast('Tip', msg))) {
+  if (data.paste(what, msg => xtoast('Tip', msg))) {
     sheetReset.call(this);
   } else if (evt) {
     const cdata = evt.clipboardData.getData('text/plain');
@@ -477,15 +467,7 @@ function horizontalScrollbarMove(distance) {
 function rowResizerFinished(cRect, distance) {
   const { ri } = cRect;
   const { table, selector, data } = this;
-  const { sri, eri } = selector.range;
-  if (ri >= sri && ri <= eri) {
-    for (let row = sri; row <= eri; row += 1) {
-      data.rows.setHeight(row, distance);
-    }
-  } else {
-    data.rows.setHeight(ri, distance);
-  }
-
+  data.setRowHeight(ri, distance);
   table.render();
   selector.resetAreaOffset();
   verticalScrollbarSet.call(this);
@@ -495,15 +477,8 @@ function rowResizerFinished(cRect, distance) {
 function colResizerFinished(cRect, distance) {
   const { ci } = cRect;
   const { table, selector, data } = this;
-  const { sci, eci } = selector.range;
-  if (ci >= sci && ci <= eci) {
-    for (let col = sci; col <= eci; col += 1) {
-      data.cols.setWidth(col, distance);
-    }
-  } else {
-    data.cols.setWidth(ci, distance);
-  }
-
+  data.setColWidth(ci, distance);
+  // console.log('data:', data);
   table.render();
   selector.resetAreaOffset();
   horizontalScrollbarSet.call(this);
@@ -729,12 +704,6 @@ function sheetInitEvents() {
     evt.preventDefault();
   });
 
-  bind(window, 'copy', (evt) => {
-    if (!this.focusing) return;
-    copy.call(this, evt);
-    evt.preventDefault();
-  });
-
   // for selector
   bind(window, 'keydown', (evt) => {
     if (!this.focusing) return;
@@ -761,9 +730,8 @@ function sheetInitEvents() {
           break;
         case 67:
           // ctrl + c
-          // => copy
-          // copy.call(this);
-          // evt.preventDefault();
+          copy.call(this);
+          evt.preventDefault();
           break;
         case 88:
           // ctrl + x
@@ -817,7 +785,7 @@ function sheetInitEvents() {
           break;
       }
     } else {
-      // console.log('evt.keyCode:', evt.keyCode);
+      console.log('evt.keyCode:', evt.keyCode);
       switch (keyCode) {
         case 32:
           if (shiftKey) {
@@ -886,7 +854,7 @@ function sheetInitEvents() {
 }
 
 export default class Sheet {
-  constructor(targetEl, data) {
+  constructor(targetEl, data, isDark) {
     this.eventMap = createEventEmitter();
     const { view, showToolbar, showContextmenu } = data.settings;
     this.el = h('div', `${cssPrefix}-sheet`);
@@ -936,7 +904,7 @@ export default class Sheet {
       this.sortFilter.el,
     );
     // table
-    this.table = new Table(this.tableEl.el, data);
+    this.table = new Table(this.tableEl.el, data, isDark);
     sheetInitEvents.call(this);
     sheetReset.call(this);
     // init selector [0, 0]
