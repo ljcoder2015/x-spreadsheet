@@ -2,6 +2,7 @@ export default {
   toolbar: {
     undo: '撤销',
     redo: '恢复',
+    search: '搜索',
     print: '打印',
     paintformat: '格式刷',
     clearformat: '清除格式',
@@ -98,6 +99,10 @@ export default {
     remove: '删除',
     save: '保存',
     ok: '确认',
+    last: '上一个',
+    nextValue: '下一个',
+    close: '关闭',
+    search: '搜索',
   },
   sort: {
     desc: '降序',

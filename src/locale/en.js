@@ -2,6 +2,7 @@ export default {
   toolbar: {
     undo: 'Undo',
     redo: 'Redo',
+    search: 'Search',
     print: 'Print',
     paintformat: 'Paint format',
     clearformat: 'Clear format',
@@ -98,6 +99,10 @@ export default {
     remove: 'Remove',
     save: 'Save',
     ok: 'OK',
+    nextValue: 'Next',
+    last: 'Last',
+    close: 'Close',
+    search: 'Search',
   },
   sort: {
     desc: 'Sort Z -> A',

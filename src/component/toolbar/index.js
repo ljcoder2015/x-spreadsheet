@@ -27,6 +27,7 @@ import More from './more';
 import { h } from '../element';
 import { cssPrefix } from '../../config';
 import { bind } from '../event';
+import Search from './search';
 
 function buildDivider() {
   return h('div', `${cssPrefix}-toolbar-divider`);
@@ -91,7 +92,8 @@ export default class Toolbar {
       [
         this.undoEl = new Undo(),
         this.redoEl = new Redo(),
-        new Print(),
+        this.search = new Search(),
+        // new Print(),
         this.paintformatEl = new Paintformat(),
         this.clearformatEl = new Clearformat(),
       ],

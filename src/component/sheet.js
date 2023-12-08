@@ -19,6 +19,7 @@ import SortFilter from './sort_filter';
 import { xtoast } from './message';
 import { cssPrefix } from '../config';
 import { formulas } from '../core/formula';
+import SearchWindow from './search_window';
 
 /**
  * @desc throttle fn
@@ -293,6 +294,7 @@ function sheetReset() {
     toolbar,
     selector,
     el,
+    search,
   } = this;
   const tOffset = this.getTableOffset();
   const vRect = this.getRect();
@@ -306,6 +308,7 @@ function sheetReset() {
   table.render();
   toolbar.reset();
   selector.reset();
+  search.reset();
 }
 
 function clearClipboard() {
@@ -529,7 +532,7 @@ function insertDeleteRowColumn(type) {
 }
 
 function toolbarChange(type, value) {
-  const { data } = this;
+  const { data, search } = this;
   if (type === 'undo') {
     this.undo();
   } else if (type === 'redo') {
@@ -545,6 +548,10 @@ function toolbarChange(type, value) {
     // link
   } else if (type === 'chart') {
     // chart
+  } else if (type === 'search') {
+    // search
+    search.show(this.data);
+    console.log('search', this);
   } else if (type === 'autofilter') {
     // filter
     autofilter.call(this);
@@ -583,6 +590,7 @@ function sheetInitEvents() {
     toolbar,
     modalValidation,
     sortFilter,
+    search,
   } = this;
   // overlayer
   overlayerEl
@@ -634,6 +642,12 @@ function sheetInitEvents() {
 
   // sort filter ok
   sortFilter.ok = (ci, order, o, v) => sortFilterChange.call(this, ci, order, o, v);
+
+  search.ok = (ri, ci) => {
+    console.log('search', ri, ci);
+    selectorSet.call(this, false, ri, ci, false);
+    scrollbarMove.call(this);
+  };
 
   // resizer finished callback
   rowResizer.finishedFn = (cRect, distance) => {
@@ -891,6 +905,7 @@ export default class Sheet {
       .child(this.overlayerCEl);
     // sortFilter
     this.sortFilter = new SortFilter();
+    this.search = new SearchWindow(this.data);
     // root element
     this.el.children(
       this.tableEl,
@@ -902,6 +917,7 @@ export default class Sheet {
       this.contextMenu.el,
       this.modalValidation.el,
       this.sortFilter.el,
+      this.search.el,
     );
     // table
     this.table = new Table(this.tableEl.el, data, isDark);

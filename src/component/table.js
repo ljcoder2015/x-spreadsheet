@@ -7,11 +7,10 @@ import { formatm } from '../core/format';
 import {
   Draw, DrawBox, thinLineWidth, npx,
 } from '../canvas/draw';
-import { idText } from 'typescript';
 // gobal var
 const cellPaddingWidth = 5;
 const tableFixedHeaderCleanStyle = { fillStyle: '#f4f5f8' };
-var tableGridStyle = {
+let tableGridStyle = {
   fillStyle: '#fff',
   lineWidth: thinLineWidth,
   strokeStyle: '#e6e6e6',
