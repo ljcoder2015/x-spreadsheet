@@ -333,12 +333,43 @@ function cut() {
 function paste(what, evt) {
   const { data } = this;
   if (data.settings.mode === 'read') return;
-  if (data.paste(what, msg => xtoast('Tip', msg))) {
-    sheetReset.call(this);
+  if (data.isCurrentSheetPaste(msg => xtoast('Tip', msg))) {
+    // 检查浏览器是否支持 Clipboard API
+    if (navigator.clipboard) {
+      // 获取剪切板内容
+      navigator.clipboard.readText()
+        .then((clipboardContent) => {
+          const sheetClipboardData = data.getCopyText();
+          if (clipboardContent === sheetClipboardData) {
+            // 是当前 Sheet 拷贝
+            data.paste(what);
+            sheetReset.call(this);
+          } else {
+            data.pasteFromText(clipboardContent);
+            sheetReset.call(this);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to read clipboard content:', err);
+        });
+    } else {
+      console.error('Clipboard API is not supported in this browser.');
+    }
   } else if (evt) {
-    const cdata = evt.clipboardData.getData('text/plain');
-    this.data.pasteFromText(cdata);
-    sheetReset.call(this);
+    // 检查浏览器是否支持 Clipboard API
+    if (navigator.clipboard) {
+      // 获取剪切板内容
+      navigator.clipboard.readText()
+        .then((clipboardContent) => {
+          this.data.pasteFromText(clipboardContent);
+          sheetReset.call(this);
+        })
+        .catch((err) => {
+          console.error('Failed to read clipboard content:', err);
+        });
+    } else {
+      console.error('Clipboard API is not supported in this browser.');
+    }
   }
 }
 
@@ -645,7 +676,7 @@ function sheetInitEvents() {
 
   search.ok = (ri, ci) => {
     console.log('search', ri, ci);
-    selectorSet.call(this, false, ri, ci, false);
+    selectorSet.call(this, false, ri, ci, true);
     scrollbarMove.call(this);
   };
 

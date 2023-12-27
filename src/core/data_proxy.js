@@ -117,6 +117,7 @@ const hasOwnProperty = (obj, name) => Object.prototype.hasOwnProperty.call(obj, 
 // src: cellRange
 // dst: cellRange
 function canPaste(src, dst, error = () => {}) {
+  // canPaste.call(this, clipboard.range, selector.range, error)
   const { merges } = this;
   const cellRange = dst.clone();
   const [srn, scn] = src.size();
@@ -133,6 +134,7 @@ function canPaste(src, dst, error = () => {}) {
   }
   return true;
 }
+
 function copyPaste(srcCellRange, dstCellRange, what, autofill = false) {
   const { rows, merges } = this;
   // delete dest merge
@@ -409,6 +411,37 @@ export default class DataProxy {
     this.clipboard.copy(this.selector.range);
   }
 
+
+  getCopyText() {
+    const { clipboard } = this;
+    const src = clipboard.range;
+    let copyText = '';
+    const rowData = this.rows.getData();
+    for (let ri = src.sri; ri <= src.eri; ri += 1) {
+      if (hasOwnProperty(rowData, ri)) {
+        for (let ci = src.sci; ci <= src.eci; ci += 1) {
+          if (ci > src.sci) {
+            copyText += '\t';
+          }
+          if (hasOwnProperty(rowData[ri].cells, ci)) {
+            const cellText = String(rowData[ri].cells[ci].text);
+            if ((cellText.indexOf(`\n`) === -1) && (cellText.indexOf(`\t`) === -1) && (cellText.indexOf(`"`) === -1)) {
+              copyText += cellText;
+            } else {
+              copyText += `"${cellText}"`;
+            }
+          }
+        }
+      } else {
+        for (let ci = src.sci; ci <= src.eci; ci += 1) {
+          copyText += '\t';
+        }
+      }
+      copyText += '\n';
+    }
+    return copyText;
+  }
+
   copyToSystemClipboard() {
     /* global navigator */
     if (navigator.clipboard === undefined) {
@@ -447,12 +480,21 @@ export default class DataProxy {
     this.clipboard.cut(this.selector.range);
   }
 
-  // what: all | text | format
-  paste(what = 'all', error = () => {}) {
-    // console.log('sIndexes:', sIndexes);
+  // 判断是否拷贝的当前 Sheet 数据
+  isCurrentSheetPaste(error = () => {}) {
     const { clipboard, selector } = this;
     if (clipboard.isClear()) return false;
     if (!canPaste.call(this, clipboard.range, selector.range, error)) return false;
+    if (navigator.clipboard === undefined) return false;
+    return true;
+  }
+
+  // what: all | text | format
+  paste(what = 'all') {
+    const { clipboard, selector } = this;
+    // if (clipboard.isClear()) return false;
+    // if (!canPaste.call(this, clipboard.range, selector.range, error)) return false;
+    // if (navigator.clipboard === undefined) return false;
 
     this.changeData(() => {
       if (clipboard.isCopy()) {
@@ -465,7 +507,12 @@ export default class DataProxy {
   }
 
   pasteFromText(txt) {
-    const lines = txt.split('\r\n').map(it => it.replace(/"/g, '').split('\t'));
+    let lines = [];
+    if (txt.includes('\r\n')) {
+      lines = txt.split('\r\n').map(it => it.replace(/"/g, '').split('\t'));
+    } else {
+      lines = txt.split('\n').map(it => it.replace(/"/g, '').split('\t'));
+    }
     if (lines.length > 0) lines.length -= 1;
     const { rows, selector } = this;
     this.changeData(() => {
