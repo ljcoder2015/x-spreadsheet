@@ -340,6 +340,7 @@ function paste(what, evt) {
       navigator.clipboard.readText()
         .then((clipboardContent) => {
           const sheetClipboardData = data.getCopyText();
+          console.log('isCurrentSheetPaste ==', sheetClipboardData, clipboardContent);
           if (clipboardContent === sheetClipboardData) {
             // 是当前 Sheet 拷贝
             data.paste(what);

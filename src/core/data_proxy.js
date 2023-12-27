@@ -478,6 +478,7 @@ export default class DataProxy {
 
   cut() {
     this.clipboard.cut(this.selector.range);
+    this.copyToSystemClipboard();
   }
 
   // 判断是否拷贝的当前 Sheet 数据
@@ -513,7 +514,8 @@ export default class DataProxy {
     } else {
       lines = txt.split('\n').map(it => it.replace(/"/g, '').split('\t'));
     }
-    if (lines.length > 0) lines.length -= 1;
+
+    console.log('pasteFromText', lines);
     const { rows, selector } = this;
     this.changeData(() => {
       rows.paste(lines, selector.range);
