@@ -286,6 +286,7 @@ export default class Selector {
   set(ri, ci, indexesUpdated = true) {
     const { data } = this;
     const cellRange = data.calSelectedRangeByStart(ri, ci);
+    console.log('-------', cellRange);
     const { sri, sci } = cellRange;
     if (indexesUpdated) {
       let [cri, cci] = [ri, ci];

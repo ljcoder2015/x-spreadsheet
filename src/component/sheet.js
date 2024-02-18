@@ -127,6 +127,17 @@ function selectorMove(multiple, direction) {
   scrollbarMove.call(this);
 }
 
+function selectedAll() {
+  const {
+    selector, data,
+  } = this;
+  selector.set(0, 0);
+  const { rows, cols } = data;
+  const ci = cols.len - 1;
+  const ri = rows.len - 1;
+  selectorSet.call(this, true, ri, ci);
+}
+
 // private methods
 function overlayerMousemove(evt) {
   // console.log('x:', evt.offsetX, ', y:', evt.offsetY);
@@ -772,6 +783,12 @@ function sheetInitEvents() {
         case 89:
           // redo: ctrl + y
           this.redo();
+          evt.preventDefault();
+          break;
+        case 65:
+          // ctrl + a
+          selectedAll.call(this);
+          // selectorSet.call(this, true, 0, 0);
           evt.preventDefault();
           break;
         case 67:
